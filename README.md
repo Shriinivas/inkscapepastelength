@@ -6,4 +6,5 @@ The source is the topmost path in the selection. <br>
 Copy paste_length.py and paste_length.inx in the user extension folder. This will be displayed in Edit->Preference dialog against System option. You will need to restart inkscape after the files are copied.
 
 # Usage
-The effect is under Extensions->Modify Path menu. 'Scale From' value is the origin point of scaling. Scale Factor applies additional scaling on top of the copied length. Precision is the degree of accuracy.
+The effect is under Extensions->Modify Path menu. 'Scale From' value is the origin point of scaling. Scale Factor applies additional scaling on top of the copied length. Precision is the degree of accuracy.<br>
+Quick Introduction: https://youtu.be/L7Z48mZlhV0
