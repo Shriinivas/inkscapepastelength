@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 Inkscape extension to copy length of the source path to the selected 
@@ -21,43 +21,32 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 '''
 
-import inkex, cubicsuperpath, bezmisc, simpletransform, sys
+import inkex
+import bezmisc
+from inkex.paths import Path, CubicSuperPath
 
 class PasteLengthEffect(inkex.Effect):
 
     def __init__(self):
-
         inkex.Effect.__init__(self)
-
-        self.OptionParser.add_option('-s', '--scale', action = 'store',
-          type = 'float', dest = 'scale', default = '1',
-          help = 'Additionally scale the length by')
-
-        self.OptionParser.add_option('-f', '--scaleFrom', action = 'store',
-          type = 'string', dest = 'scaleFrom', default = 'center',
-          help = 'Scale Path From')
-
-        self.OptionParser.add_option('-p', '--precision', action = 'store',
-          type = 'int', dest = 'precision', default = '5',
-          help = 'Number of significant digits')
-
-        self.OptionParser.add_option("--tab", action="store", 
-          type="string", dest="tab", default="sampling", help="Tab") 
+        self.arg_parser.add_argument('--scale', type = float, default = '1', help = 'Additionally scale the length by')
+        self.arg_parser.add_argument('--scaleFrom', default = 'center', help = 'Scale Path From')
+        self.arg_parser.add_argument('--precision', type = int, default = '5', help = 'Number of significant digits')
+        self.arg_parser.add_argument("--tab", default="sampling", help="Tab") 
 
     def scaleCubicSuper(self, cspath, scaleFactor, scaleFrom):
+        bbox = Path(cspath).bounding_box()
 
-        xmin, xmax, ymin, ymax = simpletransform.refinedBBox(cspath)
-        
         if(scaleFrom == 'topLeft'):
-            oldOrigin= [xmin, ymin]
+            oldOrigin= [bbox.left, bbox.bottom]
         elif(scaleFrom == 'topRight'):
-            oldOrigin= [xmax, ymin]
+            oldOrigin= [bbox.right, bbox.bottom]
         elif(scaleFrom == 'bottomLeft'):
-            oldOrigin= [xmin, ymax]
+            oldOrigin= [bbox.left, ymax]
         elif(scaleFrom == 'bottomRight'):
-            oldOrigin= [xmax, ymax]
+            oldOrigin= [bbox.right, bbox.top]
         else: #if(scaleFrom == 'center'):
-            oldOrigin= [xmin + (xmax - xmin) / 2., ymin + (ymax - ymin) / 2.]
+            oldOrigin= [bbox.left + (bbox.right - bbox.left) / 2., bbox.bottom + (bbox.top - bbox.bottom) / 2.]
             
         newOrigin = [oldOrigin[0] * scaleFactor , oldOrigin[1] * scaleFactor ]
             
@@ -90,8 +79,7 @@ class PasteLengthEffect(inkex.Effect):
         
         for i, part in enumerate(parts):
             for j, seg in enumerate(part):
-                curveLen += bezmisc.bezierlengthSimpson((seg[0], seg[1], seg[2], seg[3]), 
-                    tolerance = tolerance)
+                curveLen += bezmisc.bezierlengthSimpson((seg[0], seg[1], seg[2], seg[3]), tolerance = tolerance)
                 
         return curveLen
 
@@ -102,12 +90,11 @@ class PasteLengthEffect(inkex.Effect):
         tolerance = 10 ** (-1 * self.options.precision)
         
         printOut = False
-        selections = self.selected        
+        selections = self.svg.selected     
         pathNodes = self.document.xpath('//svg:path',namespaces=inkex.NSS)
         outStrs = [str(len(pathNodes))]
 
-        paths = [(pathNode.get('id'), cubicsuperpath.parsePath(pathNode.get('d'))) \
-            for pathNode in  pathNodes if (pathNode.get('id') in selections.keys())]
+        paths = [(pathNode.get('id'), CubicSuperPath(pathNode.get('d'))) for pathNode in pathNodes]
 
         if(len(paths) > 1):
             srcPath = paths[-1][1]
@@ -118,11 +105,10 @@ class PasteLengthEffect(inkex.Effect):
                 
                 self.scaleCubicSuper(cspath, scaleFactor = scale * (srclen / curveLen), \
                 scaleFrom = scaleFrom)
-                selections[key].set('d', cubicsuperpath.formatPath(cspath))
+                selections[key].set('d', CubicSuperPath(cspath))
         else:
             inkex.errormsg(_("Please select at least two paths, with the path whose \
             length is to be copied at the top. You may have to convert the shape \
             to path with path->Object to Path."))
 
-effect = PasteLengthEffect()
-effect.affect()
+PasteLengthEffect().run()
