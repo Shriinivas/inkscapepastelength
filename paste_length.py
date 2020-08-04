@@ -21,32 +21,102 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 '''
 
-import inkex, cubicsuperpath, bezmisc, simpletransform, sys
+import inkex
 
+# TODO: Find inkscape version
+try:
+    import simplepath
+    from inkex.paths import Path, CubicSuperPath
+    from inkex import bezier
+    ver = 1.0 
+except:
+    import cubicsuperpath
+    ver = 0.92
+
+import bezmisc, simpletransform
+
+######### Function variants for 1.0 and 0.92 - Start ##########
+
+# Used only in 0.92
+def getPartsFromCubicSuper(cspath):
+    parts = []
+    for subpath in cspath:
+        part = []
+        prevBezPt = None            
+        for i, bezierPt in enumerate(subpath):
+            if(prevBezPt != None):
+                seg = [prevBezPt[1], prevBezPt[2], bezierPt[0], bezierPt[1]]
+                part.append(seg)
+            prevBezPt = bezierPt
+        parts.append(part)
+    return parts
+
+def formatPath(cspath):
+    if(ver == 1.0):
+        return cspath.__str__()
+    else:
+        return cubicsuperpath.formatPath(cspath)
+
+def getParsedPath(d):
+    if(ver == 1.0):
+        return CubicSuperPath(Path(d).to_superpath())
+    else:
+        return cubicsuperpath.parsePath(d)
+
+def getBoundingBox(cspath):
+    if(ver == 1.0):
+        bbox = cspath.to_path().bounding_box()
+        return bbox.left, bbox.right, bbox.top, bbox.bottom
+    else:
+        return simpletransform.refinedBBox(cspath)
+
+def getLength(cspath, tolerance):
+    if(ver == 1.0):
+        return bezier.csplength(cspath)[1]
+    else:
+        parts = getPartsFromCubicSuper(cspath)
+        curveLen = 0
+
+        for i, part in enumerate(parts):
+            for j, seg in enumerate(part):
+                curveLen += bezmisc.bezierlengthSimpson((seg[0], seg[1], seg[2], seg[3]), \
+                tolerance = tolerance)
+
+        return curveLen
+
+######### Function variants for 1.0 and 0.92 - End ##########
+    
 class PasteLengthEffect(inkex.Effect):
 
     def __init__(self):
 
         inkex.Effect.__init__(self)
+        if(ver == 1.0): 
+            addFn= self.arg_parser.add_argument
+            typeFloat = float
+            typeInt = int
+            typeString = str
+        else: 
+            addFn = self.OptionParser.add_option
+            typeFloat = 'float'
+            typeInt = 'int'
+            typeString = 'string'
 
-        self.OptionParser.add_option('-s', '--scale', action = 'store',
-          type = 'float', dest = 'scale', default = '1',
+        addFn('-s', '--scale', action = 'store', type = typeFloat, dest = 'scale', default = '1',
           help = 'Additionally scale the length by')
 
-        self.OptionParser.add_option('-f', '--scaleFrom', action = 'store',
-          type = 'string', dest = 'scaleFrom', default = 'center',
-          help = 'Scale Path From')
+        addFn('-f', '--scaleFrom', action = 'store', type = typeString, \
+            dest = 'scaleFrom', default = 'center', help = 'Scale Path From')
 
-        self.OptionParser.add_option('-p', '--precision', action = 'store',
-          type = 'int', dest = 'precision', default = '5',
-          help = 'Number of significant digits')
+        addFn('-p', '--precision', action = 'store', type = typeInt, dest = 'precision', \
+            default = '5', help = 'Number of significant digits')
 
-        self.OptionParser.add_option("--tab", action="store", 
-          type="string", dest="tab", default="sampling", help="Tab") 
+        addFn("--tab", action = "store", type = typeString, dest = "tab", default = "sampling", \
+            help="Tab") 
 
     def scaleCubicSuper(self, cspath, scaleFactor, scaleFrom):
 
-        xmin, xmax, ymin, ymax = simpletransform.refinedBBox(cspath)
+        xmin, xmax, ymin, ymax = getBoundingBox(cspath)
         
         if(scaleFrom == 'topLeft'):
             oldOrigin= [xmin, ymin]
@@ -71,30 +141,6 @@ class PasteLengthEffect(inkex.Effect):
                     bezierPt[i][0] += (oldOrigin[0] - newOrigin[0])
                     bezierPt[i][1] += (oldOrigin[1] - newOrigin[1])
                 
-    def getPartsFromCubicSuper(self, cspath):
-        parts = []
-        for subpath in cspath:
-            part = []
-            prevBezPt = None            
-            for i, bezierPt in enumerate(subpath):
-                if(prevBezPt != None):
-                    seg = [prevBezPt[1], prevBezPt[2], bezierPt[0], bezierPt[1]]
-                    part.append(seg)
-                prevBezPt = bezierPt
-            parts.append(part)
-        return parts
-        
-    def getLength(self, cspath, tolerance):
-        parts = self.getPartsFromCubicSuper(cspath)
-        curveLen = 0
-        
-        for i, part in enumerate(parts):
-            for j, seg in enumerate(part):
-                curveLen += bezmisc.bezierlengthSimpson((seg[0], seg[1], seg[2], seg[3]), 
-                    tolerance = tolerance)
-                
-        return curveLen
-
     def effect(self):
         scale = self.options.scale
         scaleFrom = self.options.scaleFrom
@@ -102,27 +148,27 @@ class PasteLengthEffect(inkex.Effect):
         tolerance = 10 ** (-1 * self.options.precision)
         
         printOut = False
-        selections = self.selected        
-        pathNodes = self.document.xpath('//svg:path',namespaces=inkex.NSS)
+        selections = self.svg.selected if(ver == 1.0) else self.selected
+        pathNodes = self.document.xpath('//svg:path',namespaces = inkex.NSS)
         outStrs = [str(len(pathNodes))]
 
-        paths = [(pathNode.get('id'), cubicsuperpath.parsePath(pathNode.get('d'))) \
+        paths = [(pathNode.get('id'), getParsedPath(pathNode.get('d'))) \
             for pathNode in  pathNodes if (pathNode.get('id') in selections.keys())]
 
         if(len(paths) > 1):
             srcPath = paths[-1][1]
-            srclen = self.getLength(srcPath, tolerance)
+            srclen = getLength(srcPath, tolerance)
             paths = paths[:len(paths)-1]
             for key, cspath in paths:
-                curveLen = self.getLength(cspath, tolerance)
+                curveLen = getLength(cspath, tolerance)
                 
                 self.scaleCubicSuper(cspath, scaleFactor = scale * (srclen / curveLen), \
                 scaleFrom = scaleFrom)
-                selections[key].set('d', cubicsuperpath.formatPath(cspath))
+                selections[key].set('d', formatPath(cspath))
         else:
             inkex.errormsg(_("Please select at least two paths, with the path whose \
             length is to be copied at the top. You may have to convert the shape \
             to path with path->Object to Path."))
 
-effect = PasteLengthEffect()
-effect.affect()
+if(ver == 1.0): PasteLengthEffect().run()
+else: PasteLengthEffect().affect()

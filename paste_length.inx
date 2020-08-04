@@ -2,8 +2,6 @@
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
     <_name>Paste Length</_name>
     <id>paste.svg.paste.length</id>
-    <dependency type="executable" location="extensions">paste_length.py</dependency>
-    <dependency type="executable" location="extensions">inkex.py</dependency>
     <param name="tab" type="notebook">
         <page name="pasteLength" _gui-text="Paste Length">-->
             <param name="scaleFrom" type="enum" _gui-text="Scale From:">
@@ -17,7 +15,7 @@
             <param name="precision" type="int" default = '5' min = '0' max = '10' _gui-text="Precision:">5</param>
         </page>
         <page name="desc" _gui-text="Help">
-            <_param name="pasteLengthhelp" type="description" xml:space="preserve">This effect makes the length of all the destination paths the same as that of the source path, while maintaining their shapes. The source is the topmost path in the selection. Precision field denotes the number of significant digits, to which the length is rounded.
+            <_param name="pasteLengthhelp" type="description" xml:space="preserve">This effect makes the length of all the destination paths the same as that of the source path while maintaining their shapes. The source is the topmost path in the selection. Precision field (not used in Inkscape 1.0) denotes the number of significant digits, to which the length is rounded.
             </_param>
         </page>
     </param>
