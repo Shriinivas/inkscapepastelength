@@ -25,15 +25,12 @@ import inkex
 
 # TODO: Find inkscape version
 try:
-    import simplepath
     from inkex.paths import Path, CubicSuperPath
     from inkex import bezier
     ver = 1.0 
 except:
-    import cubicsuperpath
+    import cubicsuperpath, bezmisc, simpletransform
     ver = 0.92
-
-import bezmisc, simpletransform
 
 ######### Function variants for 1.0 and 0.92 - Start ##########
 
