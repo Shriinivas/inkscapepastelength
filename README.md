@@ -1,6 +1,6 @@
 ### (Compatible with Inskcape Versions 1.0 & 0.92)
 
-![Demo](https://github.com/Shriinivas/inkscapepastelength/blob/master/git.gif)
+![Demo](https://github.com/Shriinivas/etc/blob/master/inkscapepastelength/illustrations/git.gif)
 # Paste Length Inkscape Extension
 This effect makes the length of all the destination paths the same as that of the source path, while maintaining their shapes.<br>
 The source is the topmost path in the selection. <br>
