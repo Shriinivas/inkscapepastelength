@@ -11,7 +11,7 @@
                 <_item value="bottomLeft">Bottom Left</_item>
                 <_item value="bottomRight">Bottom Right</_item>
             </param>
-            <param name="scale" type="float" _gui-text="Scale Factor:">1</param>
+            <param name="scale" type="float"  max = '9999999' _gui-text="Scale Factor:">1</param>
             <param name="precision" type="int" default = '5' min = '0' max = '10' _gui-text="Precision:">5</param>
         </page>
         <page name="desc" _gui-text="Help">
