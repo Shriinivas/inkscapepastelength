@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Inkscape extension to copy length of the source path to the selected 
+Inkscape extension to copy length of the source path to the selected
 destination path(s)
 
 Copyright (C) 2018  Shrinivas Kulkarni
@@ -27,7 +27,7 @@ import inkex
 try:
     from inkex.paths import Path, CubicSuperPath
     from inkex import bezier
-    ver = 1.0 
+    ver = 1.0
 except:
     import cubicsuperpath, bezmisc, simpletransform
     ver = 0.92
@@ -39,7 +39,7 @@ def getPartsFromCubicSuper(cspath):
     parts = []
     for subpath in cspath:
         part = []
-        prevBezPt = None            
+        prevBezPt = None
         for i, bezierPt in enumerate(subpath):
             if(prevBezPt != None):
                 seg = [prevBezPt[1], prevBezPt[2], bezierPt[0], bezierPt[1]]
@@ -81,19 +81,25 @@ def getLength(cspath, tolerance):
 
         return curveLen
 
+def getSelections(effect):
+    if(ver == 1.0):
+        return {n.get('id'): n for n in effect.svg.selection.filter(inkex.PathElement)}
+    else:
+        return effect.selected
+
 ######### Function variants for 1.0 and 0.92 - End ##########
-    
+
 class PasteLengthEffect(inkex.Effect):
 
     def __init__(self):
 
         inkex.Effect.__init__(self)
-        if(ver == 1.0): 
+        if(ver == 1.0):
             addFn= self.arg_parser.add_argument
             typeFloat = float
             typeInt = int
             typeString = str
-        else: 
+        else:
             addFn = self.OptionParser.add_option
             typeFloat = 'float'
             typeInt = 'int'
@@ -109,12 +115,12 @@ class PasteLengthEffect(inkex.Effect):
             default = '5', help = 'Number of significant digits')
 
         addFn("--tab", action = "store", type = typeString, dest = "tab", default = "sampling", \
-            help="Tab") 
+            help="Tab")
 
     def scaleCubicSuper(self, cspath, scaleFactor, scaleFrom):
 
         xmin, xmax, ymin, ymax = getBoundingBox(cspath)
-        
+
         if(scaleFrom == 'topLeft'):
             oldOrigin= [xmin, ymin]
         elif(scaleFrom == 'topRight'):
@@ -125,27 +131,27 @@ class PasteLengthEffect(inkex.Effect):
             oldOrigin= [xmax, ymax]
         else: #if(scaleFrom == 'center'):
             oldOrigin= [xmin + (xmax - xmin) / 2., ymin + (ymax - ymin) / 2.]
-            
+
         newOrigin = [oldOrigin[0] * scaleFactor , oldOrigin[1] * scaleFactor ]
-            
+
         for subpath in cspath:
             for bezierPt in subpath:
                 for i in range(0, len(bezierPt)):
-                    
-                    bezierPt[i] = [bezierPt[i][0] * scaleFactor, 
+
+                    bezierPt[i] = [bezierPt[i][0] * scaleFactor,
                         bezierPt[i][1] * scaleFactor]
-                        
+
                     bezierPt[i][0] += (oldOrigin[0] - newOrigin[0])
                     bezierPt[i][1] += (oldOrigin[1] - newOrigin[1])
-                
+
     def effect(self):
         scale = self.options.scale
         scaleFrom = self.options.scaleFrom
-        
+
         tolerance = 10 ** (-1 * self.options.precision)
-        
+
         printOut = False
-        selections = self.svg.selected if(ver == 1.0) else self.selected
+        selections = getSelections(self)
         pathNodes = self.document.xpath('//svg:path',namespaces = inkex.NSS)
         outStrs = [str(len(pathNodes))]
 
@@ -158,7 +164,7 @@ class PasteLengthEffect(inkex.Effect):
             paths = paths[:len(paths)-1]
             for key, cspath in paths:
                 curveLen = getLength(cspath, tolerance)
-                
+
                 self.scaleCubicSuper(cspath, scaleFactor = scale * (srclen / curveLen), \
                 scaleFrom = scaleFrom)
                 selections[key].set('d', formatPath(cspath))
