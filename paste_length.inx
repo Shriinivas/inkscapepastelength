@@ -3,7 +3,7 @@
     <_name>Paste Length</_name>
     <id>paste.svg.paste.length</id>
     <param name="tab" type="notebook">
-        <page name="pasteLength" _gui-text="Paste Length">-->
+        <page name="pasteLength" _gui-text="Paste Length">
             <param name="scaleFrom" type="enum" _gui-text="Scale From:">
                 <_item value="center">Center</_item>
                 <_item value="topLeft">Top Left</_item>
